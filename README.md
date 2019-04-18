@@ -1,2 +1,3 @@
-# INF01142_Sisop_Trab01
-Trabalho de implementação cthreads Sistemas Operacionais I
+# INF01142 - Sistemas Operacionais I N - Trabalho Compact Threads (cthreads)
+
+Inserir descrição aqui.
