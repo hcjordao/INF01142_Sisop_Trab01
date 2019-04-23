@@ -6,8 +6,42 @@
 #include "../include/cdata.h"
 
 
+/*
+  int init;
+int UltimaTID = 1;
+  PFILA2 todasThreads;
+  PFILA2 aptosBaixa;
+  PFILA2 aptosMedia;
+  PFILA2 aptosAlta;
+  PFILA2 bloqueadas;
+  PFILA2 filaJoin;
+  TCB_t* threadExecutando;
+  ucontext_t yield;
+  ucontext_t threadTerminada;
+  int yieldBit;
+  int joinBit;
+*/
+
+
+
 int ccreate (void* (*start)(void*), void *arg, int prio) {
-	return -1;
+/*
+	TCB_t *newThread = NULL;
+
+	newThread = (TCB_t*) malloc(sizeof(TCB_t));
+	newThread -> state = PROCST_APTO;
+	newThread -> prio = prio;
+	newThread -> tid = UltimaTID;
+
+
+
+
+
+
+
+
+	UltimaTID += 1;*/
+	return 1;//newThread->tid;
 }
 
 int csetprio(int tid, int prio) {
@@ -35,8 +69,13 @@ int csignal(csem_t *sem) {
 }
 
 int cidentify (char *name, int size) {
-	strncpy (name, "Sergio Cechin - 2017/1 - Teste de compilacao.", size);
-	return 0;
+	strncpy (name, "Dieniffer Vargas, 261612 \nHenrique Capelatto, 230188 \nNicolas Cendron, 230281", size);
+
+	if(name == NULL)
+        return -1;
+    else
+        return 0;
+
 }
 
 
