@@ -31,7 +31,7 @@ FILA2 filaJoin;
 
 //Contextos
 
-ucontext_t yield;
+ucontext_t contextoYield;
 ucontext_t threadTerminada;
 
 //Threads
@@ -39,7 +39,7 @@ ucontext_t threadTerminada;
 TCB_t* threadExecutando;
 TCB_t* mainThread;
 
-
+//Cria uma nova Thread. Não Preemptivo.
 int ccreate (void* (*start)(void*), void *arg, int prio)
 {
 
@@ -97,68 +97,124 @@ int ccreate (void* (*start)(void*), void *arg, int prio)
 }
 
 
-
+//Set Prioridade da Thread em Execução. Não preemptivo.
 int csetprio(int tid, int prio)
 {
+    int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
-        int sucesso = Inicializa();
+        sucesso = Inicializa();
         if(sucesso == -1)
             return -1;
     }
 
-    return -1;
+    tid = -1;// ESSE TID NAO È USADO NA versão 2019/1
+
+    threadExecutando->prio = prio;
+
+    //Não É Preemptivo
+    return 0;
 }
 
+//Libera o Controle
 int cyield(void)
 {
+    int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
-        int sucesso = Inicializa();
+        sucesso = Inicializa();
         if(sucesso == -1)
             return -1;
     }
-    return -1;
+    // Troca do Contexto em Execução para o Contexto Yield
+    swapcontext(&threadExecutando->context,&contextoYield);
+
+    return 0;
 }
 
 int cjoin(int tid)
 {
+    int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
-        int sucesso = Inicializa();
+        sucesso = Inicializa();
         if(sucesso == -1)
             return -1;
     }
     return -1;
 }
 
+//Inicializa um semforo.
 int csem_init(csem_t *sem, int count)
 {
+    int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
-        int sucesso = Inicializa();
+        sucesso = Inicializa();
         if(sucesso == -1)
             return -1;
     }
-    return -1;
+
+    sem->count = count;
+    sem->fila = (PFILA2) malloc(sizeof(PFILA2));
+
+    int sucessoCriarFila = CreateFila2(sem->fila);
+
+    if(sucessoCriarFila == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 int cwait(csem_t *sem)
 {
+    int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
-        int sucesso = Inicializa();
+        sucesso = Inicializa();
         if(sucesso == -1)
             return -1;
     }
-    return -1;
+
+    //Caso Semaforo Esteja Livre
+    if(sem->count > 0) //Semaforo Livre
+    {
+        sem->count -=1;
+        return 0;
+    }
+
+    //Adiciona o tid da thread executando na lista aguardando semaforo
+
+    sucesso = AppendFila2(sem->fila,threadExecutando->tid);
+    if(sucesso != 0) return -1;
+
+    //Muda o Estado de Executando para Bloqueado
+    threadExecutando->state = PROCST_BLOQ;
+
+    //Adiciona o contexto da thread executando na lista de bloqueados
+
+    sucesso = AppendFila2(&bloqueadas,(void*)threadExecutando);
+    if(sucesso != 0) return -1;
+
+    //Decrementa o Contador do Semaforo ???
+    sem->count -= 1;
+
+    //Troca de contexto por que perdeu o processador
+    swapcontext(&threadExecutando->context,&contextoYield);
+
+    return 0;
 }
 
 int csignal(csem_t *sem)
 {
+    int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
-        int sucesso = Inicializa();
+        sucesso = Inicializa();
         if(sucesso == -1)
             return -1;
     }
@@ -181,11 +237,14 @@ int cidentify (char *name, int size)
 int Inicializa()
 {
     // Cria as filas
-
-    CreateFila2(&AllThreads);
-    CreateFila2(&AltaPrio);
-    CreateFila2(&MediaPrio);
-    CreateFila2(&BaixaPrio);
+    if(
+        CreateFila2(&AllThreads) != 0 ||
+        CreateFila2(&AltaPrio)   != 0 ||
+        CreateFila2(&MediaPrio)  != 0 ||
+        CreateFila2(&BaixaPrio)  != 0 )
+    {
+        return -1;
+    }
 
     // Cria Contexto para a Main
     getcontext(&mainThread->context);
@@ -207,19 +266,20 @@ int Inicializa()
     makecontext(&threadTerminada, (void(*)(void)) fimDeExecucao, 0);
 
     //Contexto de Yield
-    getcontext(&yield);
-    yield.uc_link = 0;
-    yield.uc_stack.ss_sp = (char *) malloc(TAM_PILHA);
-    yield.uc_stack.ss_size = TAM_PILHA;
-    makecontext(&yield, (void(*)(void)) escalonador, 0);
+    getcontext(&contextoYield);
+    contextoYield.uc_link = 0;
+    contextoYield.uc_stack.ss_sp = (char *) malloc(TAM_PILHA);
+    contextoYield.uc_stack.ss_size = TAM_PILHA;
+    makecontext(&contextoYield, (void(*)(void)) escalonador, 0);
 
     PrimeiraExecucao = 0;
     return 0;
 }
 
-void fimDeExecucao(){
-  free(threadExecutando);
-  escalonador();
+void fimDeExecucao()
+{
+    free(threadExecutando);
+    escalonador();
 }
 
 void escalonador()
