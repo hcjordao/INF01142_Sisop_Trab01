@@ -20,7 +20,7 @@ OBJS=bin/support.o bin/lib.o
 all: bin/lib.o
 			 ar crs lib/libcthread.a $(OBJS)
 
-bin/lib.o: src/lib.c #dependências para a regra2
+bin/lib.o: src/lib.c #dependencies
 			 gcc -c src/lib.c -o bin/lib.o -Wall
 
 clean:
