@@ -12,7 +12,7 @@
 int Inicializa();
 void fimDeExecucao();
 void escalonador();
-
+int verificaSeThreadEstaNaFila(int, PFILA2);
 // Controles
 
 int PrimeiraExecucao = -1;
@@ -189,7 +189,8 @@ int cwait(csem_t *sem)
 
     //Adiciona o tid da thread executando na lista aguardando semaforo
 
-    sucesso = AppendFila2(sem->fila,threadExecutando->tid);
+    sucesso = AppendFila2(sem->fila,(void*) threadExecutando->tid);
+    
     if(sucesso != 0) return -1;
 
     //Muda o Estado de Executando para Bloqueado
@@ -284,6 +285,30 @@ void fimDeExecucao()
 
 void escalonador()
 {
+
+}
+
+int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
+{
+	TCB_t *threadAtual = NULL;
+	int found = 0;
+
+	FirstFila2(filaEntrada);
+
+	threadAtual = (TCB_t*) GetAtIteratorFila2(filaEntrada);
+
+	while(found == 0 && threadAtual != NULL)
+	{
+		if(threadAtual->tid == tid)
+		{
+			found = 1;
+		}
+		else{
+			NextFila2(filaEntrada);
+			threadAtual = (TCB_t*) GetAtIteratorFila2(filaEntrada);
+		}
+	}
+	return found;
 
 }
 
