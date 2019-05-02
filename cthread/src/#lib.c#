@@ -15,7 +15,7 @@ void escalonador();
 int verificaSeThreadEstaNaFila(int, PFILA2);
 // Controles
 
-fint PrimeiraExecucao = -1;
+int PrimeiraExecucao = -1;
 int UltimaTID = 0;
 int yieldBit = 0;
 int joinBit = 0;
@@ -404,65 +404,9 @@ int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
 
 }
 
-//Yield
-//Wait
-//Join - Bloq ate terminar a thread de espera. Entro no escalonador após.
-//Fim de Processo
-int escalonador(){
-
-	//Em caso de yield apenas? E em caso de join? Precisa de flag de verificação.
-	if(FirstFila2(AltaPrio) == 0){//Achei thread com alta prioridade 
-		transicaoExecParaApto();
-		threadExecutando = (TCB_t *)GetAtIteratorFila2(AltaPrio);
-		DeleteAtIteratorFila2(AltaPrio);//Deleto da fila de prioridades
-		threadExecutando->state = PROCST_EXEC;//Seto pra executando
-		setcontext(&threadExecutando->context);//Seto o contexto
-		return 0;
-	} else {
-		if(FirstFila2(MediaPrio) == 0){//Achei thread com media prioridade 
-			transicaoExecParaApto();
-			threadExecutando = (TCB_t *)GetAtIteratorFila2(MediaPrio);
-			DeleteAtIteratorFila2(MediaPrio);
-			threadExecutando->state = PROCST_EXEC;
-			setcontext(&threadExecutando->context);
-			return 0;
-		} else { //Nao encontrou nenhuma com media prioridade busca na de baixa
-			if(FirstFila2(BaixaPrio) == 0){ //Achei thread com baixa prioridade 
-				transicaoExecParaApto(); //Exec para Apto
-				threadExecutando = (TCB_t *)GetAtIteratorFila2(BaixaPrio);
-				DeleteAtIteratorFila2(BaixaPrio);
-				threadExecutando->state = PROCST_EXEC;
-				setcontext(&threadExecutando->context);
-				return 0;
-			} else { //Nao encontrei nenhuma de baixa prioridade...
-				return 0;			
-			}	
-		}
-	}
-
-	//Caso venha do yield
+void escalonador()
+{
+  switch{
+    case 
+  }
 }
-
-//Realiza a transição da thread de execução atual para o estado de sua prioridade especifica.
-//Depois ver se causa erro trocar o estado antes do switch.
-void transicaoExecParaApto(){
-	threadExecutando->state = PROCST_APTO;	
-	int prioridade = threadExecutando->prio;
-	switch (prioridade){
-		case 0:{
-			AppendFila2(AltaPrio, threadExecutando);
-			break;
-		}
-		case 1:{
-			AppendFila2(MedioPrio, threadExecutando);
-			break;
-		}
-		case 2:{
-			AppendFila2(BaixaPrio, threadExecutando);
-			break;
-		}
-	}
-}
-
-
-
