@@ -154,17 +154,17 @@ int cjoin(int tid)
             return -1;
     }
 
-    //Verifica se e a thread main Nao pode dar join na main
+    //Verifica se eh a thread main Nao pode dar join na main
     if(tid == 0)
     {
         return -1;
     }
 
     //Tid nao esta nas filas
-    if(verificaSeThreadEstaNaFila(tid,Altaprio) == 0 &&
-            verificaSeThreadEstaNaFila(tid,Mediaprio) == 0 &&
-            verificaSeThreadEstaNaFila(tid,Baixaprio) == 0 &&
-            verificaSeThreadEstaNaFila(tid,bloqueados) == 0)
+    if(verificaSeThreadEstaNaFila(tid,AltaPrio) == 0 &&
+            verificaSeThreadEstaNaFila(tid,MediaPrio) == 0 &&
+            verificaSeThreadEstaNaFila(tid,BaixaPrio) == 0 &&
+            verificaSeThreadEstaNaFila(tid,bloqueadas) == 0)
     {
         return -1;
     }
@@ -172,25 +172,24 @@ int cjoin(int tid)
     //Representa a Thread Bloqueada pelo semaforo que estamos analisando.
     TCB_join *joinAtual = NULL;
 
-    if(FirstFila2(filaJoin) != 0) // Não conseguiupegar o First
-    {
-        if(NextFila2(filaJoin) != -NXTFILA_VAZIA) // FIla Não Vazia
-        {
-            return -1;
-        }
 
-    }
-
-    if(NextFila2(filajoin) != -NXTFILA_VAZIA)
+    if(NextFila2(filajoin) != -NXTFILA_VAZIA) //Fila não vazia
     {
+		 if(FirstFila2(filaJoin) != 0) // Não conseguiupegar o First
+			{
+				return -1;
+			}
+		
         //Como sabemos que tem gente esperando. Pega a primeira Thread
         joinAtual = GetAtIteratorFila2(filajoin);
+		
+		
         if(joinAtual == NULL)
         {
             return -1; // Deu pau no iterador
         }
-        //Tenta Achar o primeiro com prioridade 0 (Alta) que encontrar
-
+        
+		//Tenta Achar o primeiro com prioridade 0 (Alta) que encontrar
         while(joinAtual != NULL)
         {
             if(joinAtual->tid == tid)
@@ -200,19 +199,15 @@ int cjoin(int tid)
             NextFila2(filaJoin);
             joinAtual = (TCB_t*) GetAtIteratorFila2(filaJoin);
         }
-
-
-    }
+	}
 
     //Status da thread para bloqueado
     threadExecutando->state = PROCST_BLOQ;
 
-    //
+    //Cria estrutura da fila de join
     TCB_join *tjoin = (TCB_join*)malloc(sizeof(TCB_join));
     tjoin->tcb = threadExecutando;
     tjoin->tid = tid;
-
-
 
     //Insere na fila de join
     if((AppendFila2(filaJoin, tjoin)) != 0)
@@ -226,10 +221,9 @@ int cjoin(int tid)
         return -1;
     }
 
+	escalonador();
     return 0;
 }
-
-
 
 
 //Inicializa um semforo.
@@ -555,7 +549,7 @@ void transicaoExecParaApto(){
 			break;
 		}
 		case 1:{
-			AppendFila2(MedioPrio, threadExecutando);
+			AppendFila2(MediaPrio, threadExecutando);
 			break;
 		}
 		case 2:{
@@ -564,5 +558,3 @@ void transicaoExecParaApto(){
 		}
 	}
 }
-
-
