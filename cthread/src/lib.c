@@ -15,7 +15,7 @@ void escalonador();
 int verificaSeThreadEstaNaFila(int, PFILA2);
 // Controles
 
-fint PrimeiraExecucao = -1;
+int PrimeiraExecucao = -1;
 int UltimaTID = 0;
 int yieldBit = 0;
 int joinBit = 0;
