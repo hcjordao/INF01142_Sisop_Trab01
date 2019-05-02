@@ -11,8 +11,9 @@
 
 int Inicializa();
 void fimDeExecucao();
-void escalonador();
+int escalonador();
 int verificaSeThreadEstaNaFila(int, PFILA2);
+void transicaoExecParaApto();
 // Controles
 
 int PrimeiraExecucao = -1;
@@ -45,7 +46,7 @@ typedef struct TCB_join
 {
     TCB_t *tcb;
     int tid;
-}
+}TCB_join;
 
 //Cria uma nova Thread. Não Preemptivo.
 int ccreate (void* (*start)(void*), void *arg, int prio)
@@ -161,10 +162,10 @@ int cjoin(int tid)
     }
 
     //Tid nao esta nas filas
-    if(verificaSeThreadEstaNaFila(tid,AltaPrio) == 0 &&
-            verificaSeThreadEstaNaFila(tid,MediaPrio) == 0 &&
-            verificaSeThreadEstaNaFila(tid,BaixaPrio) == 0 &&
-            verificaSeThreadEstaNaFila(tid,bloqueadas) == 0)
+    if(verificaSeThreadEstaNaFila(tid,&AltaPrio) == 0 &&
+            verificaSeThreadEstaNaFila(tid,&MediaPrio) == 0 &&
+            verificaSeThreadEstaNaFila(tid,&BaixaPrio) == 0 &&
+            verificaSeThreadEstaNaFila(tid,&bloqueadas) == 0)
     {
         return -1;
     }
@@ -173,15 +174,15 @@ int cjoin(int tid)
     TCB_join *joinAtual = NULL;
 
 
-    if(NextFila2(filajoin) != -NXTFILA_VAZIA) //Fila não vazia
+    if(NextFila2(&filaJoin) != -NXTFILA_VAZIA) //Fila não vazia
     {
-		 if(FirstFila2(filaJoin) != 0) // Não conseguiupegar o First
+		 if(FirstFila2(&filaJoin) != 0) // Não conseguiupegar o First
 			{
 				return -1;
 			}
 		
         //Como sabemos que tem gente esperando. Pega a primeira Thread
-        joinAtual = GetAtIteratorFila2(filajoin);
+        joinAtual = GetAtIteratorFila2(&filaJoin);
 		
 		
         if(joinAtual == NULL)
@@ -196,8 +197,8 @@ int cjoin(int tid)
             {
                 return -2;
             }
-            NextFila2(filaJoin);
-            joinAtual = (TCB_t*) GetAtIteratorFila2(filaJoin);
+            NextFila2(&filaJoin);
+            joinAtual = (TCB_join*) GetAtIteratorFila2(&filaJoin);
         }
 	}
 
@@ -210,13 +211,13 @@ int cjoin(int tid)
     tjoin->tid = tid;
 
     //Insere na fila de join
-    if((AppendFila2(filaJoin, tjoin)) != 0)
+    if((AppendFila2(&filaJoin, tjoin)) != 0)
     {
         return -1;
     }
 
     //Insere a thread que chamou na fila bloqueado
-    if((AppendFila2(bloqueadas, threadExecutando)) != 0)
+    if((AppendFila2(&bloqueadas, threadExecutando)) != 0)
     {
         return -1;
     }
@@ -505,26 +506,26 @@ int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
 int escalonador(){
 
 	//Em caso de yield apenas? E em caso de join? Precisa de flag de verificação.
-	if(FirstFila2(AltaPrio) == 0){//Achei thread com alta prioridade 
+	if(FirstFila2(&AltaPrio) == 0){//Achei thread com alta prioridade 
 		transicaoExecParaApto();
-		threadExecutando = (TCB_t *)GetAtIteratorFila2(AltaPrio);
-		DeleteAtIteratorFila2(AltaPrio);//Deleto da fila de prioridades
+		threadExecutando = (TCB_t *)GetAtIteratorFila2(&AltaPrio);
+		DeleteAtIteratorFila2(&AltaPrio);//Deleto da fila de prioridades
 		threadExecutando->state = PROCST_EXEC;//Seto pra executando
 		setcontext(&threadExecutando->context);//Seto o contexto
 		return 0;
 	} else {
-		if(FirstFila2(MediaPrio) == 0){//Achei thread com media prioridade 
+		if(FirstFila2(&MediaPrio) == 0){//Achei thread com media prioridade 
 			transicaoExecParaApto();
-			threadExecutando = (TCB_t *)GetAtIteratorFila2(MediaPrio);
-			DeleteAtIteratorFila2(MediaPrio);
+			threadExecutando = (TCB_t *)GetAtIteratorFila2(&MediaPrio);
+			DeleteAtIteratorFila2(&MediaPrio);
 			threadExecutando->state = PROCST_EXEC;
 			setcontext(&threadExecutando->context);
 			return 0;
 		} else { //Nao encontrou nenhuma com media prioridade busca na de baixa
-			if(FirstFila2(BaixaPrio) == 0){ //Achei thread com baixa prioridade 
+			if(FirstFila2(&BaixaPrio) == 0){ //Achei thread com baixa prioridade 
 				transicaoExecParaApto(); //Exec para Apto
-				threadExecutando = (TCB_t *)GetAtIteratorFila2(BaixaPrio);
-				DeleteAtIteratorFila2(BaixaPrio);
+				threadExecutando = (TCB_t *)GetAtIteratorFila2(&BaixaPrio);
+				DeleteAtIteratorFila2(&BaixaPrio);
 				threadExecutando->state = PROCST_EXEC;
 				setcontext(&threadExecutando->context);
 				return 0;
@@ -535,6 +536,9 @@ int escalonador(){
 	}
 
 	//Caso venha do yield
+
+
+	return -1;
 }
 
 
@@ -545,15 +549,15 @@ void transicaoExecParaApto(){
 	int prioridade = threadExecutando->prio;
 	switch (prioridade){
 		case 0:{
-			AppendFila2(AltaPrio, threadExecutando);
+			AppendFila2(&AltaPrio, threadExecutando);
 			break;
 		}
 		case 1:{
-			AppendFila2(MediaPrio, threadExecutando);
+			AppendFila2(&MediaPrio, threadExecutando);
 			break;
 		}
 		case 2:{
-			AppendFila2(BaixaPrio, threadExecutando);
+			AppendFila2(&BaixaPrio, threadExecutando);
 			break;
 		}
 	}
