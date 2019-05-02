@@ -39,6 +39,14 @@ ucontext_t threadTerminada;
 TCB_t* threadExecutando;
 TCB_t* mainThread;
 
+//Estrutura do join - thread + tid(thread aguardada)
+
+typedef struct TCB_join
+{
+    TCB_t *tcb;
+    int tid;
+}
+
 //Cria uma nova Thread. Não Preemptivo.
 int ccreate (void* (*start)(void*), void *arg, int prio)
 {
@@ -132,17 +140,97 @@ int cyield(void)
     return 0;
 }
 
+
+//Thread de exec para bloqueado, espera thread = tid
+
 int cjoin(int tid)
 {
     int sucesso = 0;
+
     if(PrimeiraExecucao == -1)
     {
         sucesso = Inicializa();
         if(sucesso == -1)
             return -1;
     }
-    return -1;
+
+    //Verifica se e a thread main Nao pode dar join na main
+    if(tid == 0)
+    {
+        return -1;
+    }
+
+    //Tid nao esta nas filas
+    if(verificaSeThreadEstaNaFila(tid,Altaprio) == 0 &&
+            verificaSeThreadEstaNaFila(tid,Mediaprio) == 0 &&
+            verificaSeThreadEstaNaFila(tid,Baixaprio) == 0 &&
+            verificaSeThreadEstaNaFila(tid,bloqueados) == 0)
+    {
+        return -1;
+    }
+
+    //Representa a Thread Bloqueada pelo semaforo que estamos analisando.
+    TCB_join *joinAtual = NULL;
+
+    if(FirstFila2(filaJoin) != 0) // Não conseguiupegar o First
+    {
+        if(NextFila2(filaJoin) != -NXTFILA_VAZIA) // FIla Não Vazia
+        {
+            return -1;
+        }
+
+    }
+
+    if(NextFila2(filajoin) != -NXTFILA_VAZIA)
+    {
+        //Como sabemos que tem gente esperando. Pega a primeira Thread
+        joinAtual = GetAtIteratorFila2(filajoin);
+        if(joinAtual == NULL)
+        {
+            return -1; // Deu pau no iterador
+        }
+        //Tenta Achar o primeiro com prioridade 0 (Alta) que encontrar
+
+        while(joinAtual != NULL)
+        {
+            if(joinAtual->tid == tid)
+            {
+                return -2;
+            }
+            NextFila2(filaJoin);
+            joinAtual = (TCB_t*) GetAtIteratorFila2(filaJoin);
+        }
+
+
+    }
+
+    //Status da thread para bloqueado
+    threadExecutando->state = PROCST_BLOQ;
+
+    //
+    TCB_join *tjoin = (TCB_join*)malloc(sizeof(TCB_join));
+    tjoin->tcb = threadExecutando;
+    tjoin->tid = tid;
+
+
+
+    //Insere na fila de join
+    if((AppendFila2(filaJoin, tjoin)) != 0)
+    {
+        return -1;
+    }
+
+    //Insere a thread que chamou na fila bloqueado
+    if((AppendFila2(bloqueadas, threadExecutando)) != 0)
+    {
+        return -1;
+    }
+
+    return 0;
 }
+
+
+
 
 //Inicializa um semforo.
 int csem_init(csem_t *sem, int count)
@@ -214,9 +302,10 @@ int cwait(csem_t *sem)
 //Utilizado para avisar o Semaforo que um recurso foi liberado.
 int csignal(csem_t *sem)
 {
-	if(sem == NULL){
-	    return -1;
-	}
+    if(sem == NULL)
+    {
+        return -1;
+    }
 
     int sucesso = 0;
     if(PrimeiraExecucao == -1)
@@ -229,94 +318,102 @@ int csignal(csem_t *sem)
     //Representa a Thread Bloqueada pelo semaforo que estamos analisando.
     TCB_t *threadBloqueada = NULL;
 
-	if(FirstFila2(sem->fila) != 0) // Não conseguiupegar o First
-	{
-		if(NextFila2(sem->fila) == -NXTFILA_VAZIA) // FIla Vazia
-		{
-			sem->count +=1; //Libera um Recurso
-			return 0;
-		}else // Não pegou First e Fila Não Vazia --> ERRO
-		{
-			return -1;
-		}
-	}
+    if(FirstFila2(sem->fila) != 0) // Não conseguiupegar o First
+    {
+        if(NextFila2(sem->fila) == -NXTFILA_VAZIA) // FIla Vazia
+        {
+            sem->count +=1; //Libera um Recurso
+            return 0;
+        }
+        else  // Não pegou First e Fila Não Vazia --> ERRO
+        {
+            return -1;
+        }
+    }
 
-	//Como sabemos que tem gente esperando. Pega a primeira Thread 
-	threadBloqueada = GetAtIteratorFila2(sem->fila); 
+    //Como sabemos que tem gente esperando. Pega a primeira Thread
+    threadBloqueada = GetAtIteratorFila2(sem->fila);
 
-	if(threadBloqueada == NULL){ 
-		return -1; // Deu pau no iterador
-	}
+    if(threadBloqueada == NULL)
+    {
+        return -1; // Deu pau no iterador
+    }
 
-	//Tenta Achar o primeiro com prioridade 0 (Alta) que encontrar
-	while(threadBloqueada != NULL && threadBloqueada->prio != 0){
-		NextFila2(sem->fila);
-		threadBloqueada = (TCB_t*) GetAtIteratorFila2(sem->fila);
-	}
+    //Tenta Achar o primeiro com prioridade 0 (Alta) que encontrar
+    while(threadBloqueada != NULL && threadBloqueada->prio != 0)
+    {
+        NextFila2(sem->fila);
+        threadBloqueada = (TCB_t*) GetAtIteratorFila2(sem->fila);
+    }
 
-	// Se encontrou uma com prioridade Alta
-	if(threadBloqueada->prio == 0){
-		//Adiciona a bloqueada na Fila de Aptos
-		threadBloqueada-> state = PROCST_APTO;
-		AppendFila2(&AltaPrio,threadBloqueada);
+    // Se encontrou uma com prioridade Alta
+    if(threadBloqueada->prio == 0)
+    {
+        //Adiciona a bloqueada na Fila de Aptos
+        threadBloqueada-> state = PROCST_APTO;
+        AppendFila2(&AltaPrio,threadBloqueada);
 
-		//Remove ela da Lista de Bloqueados pelo semaforo
-		DeleteAtIteratorFila2(sem->fila);
+        //Remove ela da Lista de Bloqueados pelo semaforo
+        DeleteAtIteratorFila2(sem->fila);
 
-		//Libera um Recurso
-		sem->count +=1; 
+        //Libera um Recurso
+        sem->count +=1;
 
-		//Não Preempta
-		return 0;
-	}
+        //Não Preempta
+        return 0;
+    }
 
-	//Se não tinha nenhum com prioridade Alta, Voltamos Para o Inicio da Fila
-	if(FirstFila2(sem->fila) == 0)
-	{
-	    threadBloqueada = (TCB_t*) GetAtIteratorFila2(sem->fila);
-	}
-	else
-	{
-	    return -1;
-	}
+    //Se não tinha nenhum com prioridade Alta, Voltamos Para o Inicio da Fila
+    if(FirstFila2(sem->fila) == 0)
+    {
+        threadBloqueada = (TCB_t*) GetAtIteratorFila2(sem->fila);
+    }
+    else
+    {
+        return -1;
+    }
 
-	//Tenta Achar o primeiro com prioridade 1 (Media) que encontrar
-	while(threadBloqueada != NULL && threadBloqueada->prio != 1){
-		NextFila2(sem->fila);
-		threadBloqueada = (TCB_t*) GetAtIteratorFila2(sem->fila);
-	}
+    //Tenta Achar o primeiro com prioridade 1 (Media) que encontrar
+    while(threadBloqueada != NULL && threadBloqueada->prio != 1)
+    {
+        NextFila2(sem->fila);
+        threadBloqueada = (TCB_t*) GetAtIteratorFila2(sem->fila);
+    }
 
-	// Se encontrou uma com prioridade Media
-	if(threadBloqueada->prio == 1){
-		//Adiciona a bloqueada na Fila de Aptos
-		threadBloqueada-> state = PROCST_APTO;
-		AppendFila2(&MediaPrio,threadBloqueada);
+    // Se encontrou uma com prioridade Media
+    if(threadBloqueada->prio == 1)
+    {
+        //Adiciona a bloqueada na Fila de Aptos
+        threadBloqueada-> state = PROCST_APTO;
+        AppendFila2(&MediaPrio,threadBloqueada);
 
-		//Remove ela da Lista de Bloqueados pelo semaforo
-		DeleteAtIteratorFila2(sem->fila);
+        //Remove ela da Lista de Bloqueados pelo semaforo
+        DeleteAtIteratorFila2(sem->fila);
 
-		//Libera um Recurso
-		sem->count +=1; 
+        //Libera um Recurso
+        sem->count +=1;
 
-		//Não Preempta
-		return 0;
-	}
+        //Não Preempta
+        return 0;
+    }
 
 
-	// Se não encontrou nem com prioridade Alta Nem Media. Vamos mandar o primeiro item da Lista.
+    // Se não encontrou nem com prioridade Alta Nem Media. Vamos mandar o primeiro item da Lista.
 
-	if(FirstFila2(sem->fila) == 0)
-	{
-		threadBloqueada = GetAtIteratorFila2(sem->fila);
-		AppendFila2(&BaixaPrio,threadBloqueada);
-		DeleteAtIteratorFila2(sem->fila);
-		sem->count+=1;
-		return 0;
-	}else{
-		// Se chegou aqui entao algo errado aconteceu. 
-		//Por logica nunca chegaria aqui a menos que houvesse prioridades erradas.
-		return -1;
-	}
+    if(FirstFila2(sem->fila) == 0)
+    {
+        threadBloqueada = GetAtIteratorFila2(sem->fila);
+        AppendFila2(&BaixaPrio,threadBloqueada);
+        DeleteAtIteratorFila2(sem->fila);
+        sem->count+=1;
+        return 0;
+    }
+    else
+    {
+        // Se chegou aqui entao algo errado aconteceu.
+        //Por logica nunca chegaria aqui a menos que houvesse prioridades erradas.
+        return -1;
+    }
 }
 
 int cidentify (char *name, int size)
@@ -376,31 +473,34 @@ int Inicializa()
 
 void fimDeExecucao()
 {
+
+//veRIFICAR JOIN
     free(threadExecutando);
     escalonador();
 }
 
 int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
 {
-	TCB_t *threadAtual = NULL;
-	int found = 0;
+    TCB_t *threadAtual = NULL;
+    int found = 0;
 
-	FirstFila2(filaEntrada);
+    FirstFila2(filaEntrada);
 
-	threadAtual = (TCB_t*) GetAtIteratorFila2(filaEntrada);
+    threadAtual = (TCB_t*) GetAtIteratorFila2(filaEntrada);
 
-	while(found == 0 && threadAtual != NULL)
-	{
-		if(threadAtual->tid == tid)
-		{
-			found = 1;
-		}
-		else{
-			NextFila2(filaEntrada);
-			threadAtual = (TCB_t*) GetAtIteratorFila2(filaEntrada);
-		}
-	}
-	return found;
+    while(found == 0 && threadAtual != NULL)
+    {
+        if(threadAtual->tid == tid)
+        {
+            found = 1;
+        }
+        else
+        {
+            NextFila2(filaEntrada);
+            threadAtual = (TCB_t*) GetAtIteratorFila2(filaEntrada);
+        }
+    }
+    return found;
 
 }
 
@@ -443,6 +543,7 @@ int escalonador(){
 	//Caso venha do yield
 }
 
+
 //Realiza a transição da thread de execução atual para o estado de sua prioridade especifica.
 //Depois ver se causa erro trocar o estado antes do switch.
 void transicaoExecParaApto(){
@@ -463,6 +564,5 @@ void transicaoExecParaApto(){
 		}
 	}
 }
-
 
 
