@@ -20,6 +20,7 @@ int PrimeiraExecucao = -1;
 int UltimaTID = 0;
 int yieldBit = 0;
 int joinBit = 0;
+int yieldFlag = 0;
 
 //Filas
 
