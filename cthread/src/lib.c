@@ -514,6 +514,7 @@ int escalonador(){
 		DeleteAtIteratorFila2(&AltaPrio);//Deleto da fila de prioridades
 		threadExecutando->state = PROCST_EXEC;//Seto pra executando
 		setcontext(&threadExecutando->context);//Seto o contexto
+        yieldFlag = 0;
 		return 0;
 	} else {
 		if(FirstFila2(&MediaPrio) == 0){//Achei thread com media prioridade 
@@ -522,6 +523,7 @@ int escalonador(){
 			DeleteAtIteratorFila2(&MediaPrio);
 			threadExecutando->state = PROCST_EXEC;
 			setcontext(&threadExecutando->context);
+            yieldFlag = 0;
 			return 0;
 		} else { //Nao encontrou nenhuma com media prioridade busca na de baixa
 			if(FirstFila2(&BaixaPrio) == 0){ //Achei thread com baixa prioridade 
@@ -530,6 +532,7 @@ int escalonador(){
 				DeleteAtIteratorFila2(&BaixaPrio);
 				threadExecutando->state = PROCST_EXEC;
 				setcontext(&threadExecutando->context);
+                yieldFlag = 0;
 				return 0;
 			} else { //Nao encontrei nenhuma de baixa prioridade...
 				return 0;			
