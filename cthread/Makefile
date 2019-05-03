@@ -24,4 +24,4 @@ bin/lib.o: src/lib.c #dependencies
 			 gcc -c src/lib.c -o bin/lib.o -Wall
 
 clean:
-			 rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/*.o $(SRC_DIR)/*~ $(INC_DIR)/*~ *~
+			 rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/lib.o $(SRC_DIR)/*~ $(INC_DIR)/*~ *~
