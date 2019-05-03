@@ -446,6 +446,8 @@ int Inicializa()
 
     //Coloca a Thread Main na lista de todas as threads
     AppendFila2(&AllThreads,(void*)mainThread);
+    //Coloca a Thread Main na lista de Baixa prioridade
+    AppendFila2(&BaixaPrio,(void*)mainThread);
 
     //Define a Main thread como a thread executando no momento
     threadExecutando = mainThread;
