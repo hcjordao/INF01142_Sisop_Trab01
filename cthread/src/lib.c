@@ -137,6 +137,7 @@ int cyield(void)
             return -1;
     }
     // Troca do Contexto em Execução para o Contexto Yield
+    yieldFlag = 1; //Processo é irá liberar CPU pelo yield
     swapcontext(&threadExecutando->context,&contextoYield);
 
     return 0;
@@ -508,7 +509,7 @@ int escalonador(){
 
 	//Em caso de yield apenas? E em caso de join? Precisa de flag de verificação.
 	if(FirstFila2(&AltaPrio) == 0){//Achei thread com alta prioridade 
-		transicaoExecParaApto();
+        if(yieldFlag == 1) transicaoExecParaApto(); //Caso seja do tipo yield transfere processo atual pra fila de aptos. Caso venha de outro local a troca de filas ja foi feita, portanto so localizar qual processo por na CPU.
 		threadExecutando = (TCB_t *)GetAtIteratorFila2(&AltaPrio);
 		DeleteAtIteratorFila2(&AltaPrio);//Deleto da fila de prioridades
 		threadExecutando->state = PROCST_EXEC;//Seto pra executando
@@ -516,7 +517,7 @@ int escalonador(){
 		return 0;
 	} else {
 		if(FirstFila2(&MediaPrio) == 0){//Achei thread com media prioridade 
-			transicaoExecParaApto();
+			if(yieldFlag == 1) transicaoExecParaApto();
 			threadExecutando = (TCB_t *)GetAtIteratorFila2(&MediaPrio);
 			DeleteAtIteratorFila2(&MediaPrio);
 			threadExecutando->state = PROCST_EXEC;
@@ -524,7 +525,7 @@ int escalonador(){
 			return 0;
 		} else { //Nao encontrou nenhuma com media prioridade busca na de baixa
 			if(FirstFila2(&BaixaPrio) == 0){ //Achei thread com baixa prioridade 
-				transicaoExecParaApto(); //Exec para Apto
+				if(yieldFlag == 1) transicaoExecParaApto();
 				threadExecutando = (TCB_t *)GetAtIteratorFila2(&BaixaPrio);
 				DeleteAtIteratorFila2(&BaixaPrio);
 				threadExecutando->state = PROCST_EXEC;
@@ -535,11 +536,6 @@ int escalonador(){
 			}	
 		}
 	}
-
-	//Caso venha do yield
-
-
-	return -1;
 }
 
 
