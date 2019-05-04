@@ -10,10 +10,11 @@
 //Prototipos
 
 int Inicializa();
-void fimDeExecucao();
+int fimDeExecucao();
 int escalonador();
 int verificaSeThreadEstaNaFila(int, PFILA2);
 void transicaoExecParaApto();
+void transicaoBloqParaApto();
 // Controles
 
 int PrimeiraExecucao = -1;
@@ -470,12 +471,56 @@ int Inicializa()
     return 0;
 }
 
-void fimDeExecucao()
+int fimDeExecucao()
 {
 
-//veRIFICAR JOIN
+	int tid = threadExecutando->tid;
+	TCB_t* threadLiberada = NULL;
+    TCB_join *joinAtual = NULL;
+
+    ////////******* Verifica Se Existe uma Thread esperando por esta que acabou ***********************
+
+    if(NextFila2(&filaJoin) != -NXTFILA_VAZIA) //Fila não vazia
+    {
+		 if(FirstFila2(&filaJoin) != 0) // Não conseguiu pegar o First
+			{
+				return -1;
+			}
+		
+        //Como sabemos que a fila nao esta vazia. Pega o primeiro join
+        joinAtual = GetAtIteratorFila2(&filaJoin);
+		
+		
+        if(joinAtual == NULL)
+        {
+            return -1; // Deu pau no iterador
+        }
+        
+        
+
+		//Tenta Achar um join aguardando a tid do processo em execução
+        while(joinAtual != NULL)
+        {
+            if(joinAtual->tid == tid)
+            {
+                threadLiberada = joinAtual->tcb;
+                break;
+            }
+            NextFila2(&filaJoin);
+            joinAtual = (TCB_join*) GetAtIteratorFila2(&filaJoin);
+        }
+	}
+
+
+	if(threadLiberada != NULL)
+	{
+		transicaoBloqParaApto(threadLiberada);
+		DeleteAtIteratorFila2(&filaJoin);
+	}
+
     free(threadExecutando);
     escalonador();
+    return 0;
 }
 
 int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
@@ -560,6 +605,27 @@ void transicaoExecParaApto(){
 		}
 		case 2:{
 			AppendFila2(&BaixaPrio, threadExecutando);
+			break;
+		}
+	}
+}
+
+//Realiza a transição da thread bloqueada para o estado de sua prioridade especifica.
+//Depois ver se causa erro trocar o estado antes do switch.
+void transicaoBloqParaApto(TCB_t *threadLiberada){
+	threadLiberada->state = PROCST_APTO;	
+	int prioridade = threadLiberada->prio;
+	switch (prioridade){
+		case 0:{
+			AppendFila2(&AltaPrio, threadLiberada);
+			break;
+		}
+		case 1:{
+			AppendFila2(&MediaPrio, threadLiberada);
+			break;
+		}
+		case 2:{
+			AppendFila2(&BaixaPrio, threadLiberada);
 			break;
 		}
 	}
