@@ -558,11 +558,25 @@ int Inicializa()
     if(debug)
 	{
 		printf("\n[Inicializa]:Filas Criadas com sucesso. Proximo Passo, Criar contexto para Main");
+		fflush(stdout);
 	}
 
+// Nao é mais primeira execucao
+    PrimeiraExecucao = 0;
+
+ 
+
     // Cria Contexto para a Main
-    getcontext(&mainThread->context);
+
+	
+    if(debug)
+	{
+	   printf("\n[Inicializa]:Criada Thread Main e add em baixa prioridade.");
+	  fflush(stdout);
+	}
+
     mainThread = (TCB_t*)malloc(sizeof(TCB_t));
+    getcontext(&mainThread->context);
     mainThread -> state = PROCST_EXEC;
     mainThread -> tid = 0;
 
@@ -571,15 +585,11 @@ int Inicializa()
     //Coloca a Thread Main na lista de Baixa prioridade
     AppendFila2(&BaixaPrio,(void*)mainThread);
 
-    if(debug)
-	{
-		printf("\n[Inicializa]:Criada Thread Main e add em baixa prioridade.");
-	}
 
     //Define a Main thread como a thread executando no momento
     threadExecutando = mainThread;
 
-    //Contexto de Finalização
+	 //Contexto de Finalização
     getcontext(&threadTerminada);
     threadTerminada.uc_link = NULL;
     threadTerminada.uc_stack.ss_sp = (char *)malloc(TAM_PILHA);
@@ -603,12 +613,13 @@ int Inicializa()
 		printf("\n[Inicializa]:Criado contexto yield");
 	}
 
-    PrimeiraExecucao = 0;
     return 0;
 }
 
 int fimDeExecucao()
 {
+
+	yieldFlag = 0;
 	if(debug)
 	{
 		printf("\n[fimDeExecucao]:a thread %d esta encerrando sua execução.",threadExecutando->tid);
@@ -664,22 +675,17 @@ int fimDeExecucao()
 
 		if(debug)
 		{
-			printf("\n[fimDeExecucao]:thread foi liberada.",threadLiberada->tid);
+			printf("\n[fimDeExecucao]:thread foi liberada.");
 		}
 	}
 
-    free(threadExecutando);
+    //free(threadExecutando);
     escalonador();
     return 0;
 }
 
 int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
 {
-
-	if(debug)
-	{
-		printf("\n[verificaSeThreadEstaNaFila]: Inicio");
-	}
 
     TCB_t *threadAtual = NULL;
     int found = 0;
@@ -703,17 +709,7 @@ int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
         }
     }
 
-    if(debug){
-
-    	if(found == 1){
-			printf("\n[verificaSeThreadEstaNaFila]: Encontrou");
-    	}else{
-    		printf("\n[verificaSeThreadEstaNaFila]: Não Encontrou");
-    	}
-
-
-
-    }
+   
     return found;
 
 }
@@ -726,17 +722,23 @@ int escalonador(){
 
 	if(debug)
 	{
-		printf("\n[escalonador]: Inicio");
+		printf("\n[escalonador]:");
+		fflush(stdout);
 	}
 
 	//Em caso de yield apenas? E em caso de join? Precisa de flag de verificação.
 	if(FirstFila2(&AltaPrio) == 0){//Achei thread com alta prioridade 
-        if(yieldFlag == 1) transicaoExecParaApto(); //Caso seja do tipo yield transfere processo atual pra fila de aptos. Caso venha de outro local a troca de filas ja foi feita, portanto so localizar qual processo por na CPU.
+	printf("\nALTA");        
+		if(yieldFlag == 1) transicaoExecParaApto(); //Caso seja do tipo yield transfere processo atual pra fila de aptos. Caso venha de outro local a troca de filas ja foi feita, portanto so localizar qual processo por na CPU.
+		
 		threadExecutando = (TCB_t *)GetAtIteratorFila2(&AltaPrio);
+		
 		DeleteAtIteratorFila2(&AltaPrio);//Deleto da fila de prioridades
+				
 		threadExecutando->state = PROCST_EXEC;//Seto pra executando
+		printf("threadExecutando TID: %d",threadExecutando->tid);fflush(stdout);
 		setcontext(&threadExecutando->context);//Seto o contexto
-        yieldFlag = 0;
+        	yieldFlag = 0;
 		return 0;
 	} else {
 		if(FirstFila2(&MediaPrio) == 0){//Achei thread com media prioridade 
@@ -756,7 +758,7 @@ int escalonador(){
 				setcontext(&threadExecutando->context);
                 yieldFlag = 0;
 				return 0;
-			} else { //Nao encontrei nenhuma de baixa prioridade...
+			} else { //Nao encontrei nenhuma de baixa prioridade...				
 				return 0;			
 			}	
 		}
@@ -771,6 +773,7 @@ void transicaoExecParaApto(){
 	if(debug)
 	{
 		printf("\n[transicaoExecParaApto]");
+		fflush(stdout);
 	}
 
 	threadExecutando->state = PROCST_APTO;	
