@@ -22,7 +22,7 @@ int UltimaTID = 0;
 int yieldBit = 0;
 int joinBit = 0;
 int yieldFlag = 0;
-
+int debug = 1;
 //Filas
 
 FILA2 AllThreads;
@@ -53,6 +53,11 @@ typedef struct TCB_join
 //Cria uma nova Thread. Não Preemptivo.
 int ccreate (void* (*start)(void*), void *arg, int prio)
 {
+
+	if(debug)
+	{
+		printf("\n[ccreate]Inicio Criacao tid: %d com prioidade %d \n",UltimaTID+1,prio);
+	}
 
     int sucesso = 0;
     if(PrimeiraExecucao == -1)
@@ -104,6 +109,12 @@ int ccreate (void* (*start)(void*), void *arg, int prio)
     if (sucesso != 0)
         return -1;
 
+
+	if(debug)
+	{
+		printf("\n[ccreate]Criado com sucesso");
+	}
+
     return newThread->tid;
 }
 
@@ -111,6 +122,12 @@ int ccreate (void* (*start)(void*), void *arg, int prio)
 //Set Prioridade da Thread em Execução. Não preemptivo.
 int csetprio(int tid, int prio)
 {
+
+	if(debug)
+	{
+		printf("\n[csetprio]: Processo %d passará da prioridade %d para %d",threadExecutando->tid,threadExecutando->prio, prio);
+	}
+
     int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
@@ -123,6 +140,11 @@ int csetprio(int tid, int prio)
 
     threadExecutando->prio = prio;
 
+    if(debug)
+	{
+		printf("\n[csetprio]: Prioridade atualizada com sucesso");
+	}
+
     //Não É Preemptivo
     return 0;
 }
@@ -130,6 +152,11 @@ int csetprio(int tid, int prio)
 //Libera o Controle
 int cyield(void)
 {
+    if(debug)
+	{
+		printf("\n[cyield]: Processo %d abriu mão do processador",threadExecutando->tid);
+	}
+
     int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
@@ -149,6 +176,12 @@ int cyield(void)
 
 int cjoin(int tid)
 {
+    if(debug)
+	{
+		printf("\n[cjoin]: Processo %d quer aguardar o termino do processo %d",threadExecutando->tid,tid);
+	}
+
+
     int sucesso = 0;
 
     if(PrimeiraExecucao == -1)
@@ -198,6 +231,11 @@ int cjoin(int tid)
         {
             if(joinAtual->tid == tid)
             {
+            	if(debug)
+				{
+					printf("\n[cjoin]: Ja Existia uma thread aguardando o tid %d",tid);
+				}
+
                 return -2;
             }
             NextFila2(&filaJoin);
@@ -225,6 +263,12 @@ int cjoin(int tid)
         return -1;
     }
 
+    if(debug)
+	{
+		printf("\n[cjoin]: Join Reaizado Com sucesso");
+	}
+
+
 	escalonador();
     return 0;
 }
@@ -233,6 +277,12 @@ int cjoin(int tid)
 //Inicializa um semforo.
 int csem_init(csem_t *sem, int count)
 {
+
+	if(debug)
+	{
+		printf("\n[csem_init]: Semaforo Começou a ser inicializado");
+	}
+
     int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
@@ -248,6 +298,11 @@ int csem_init(csem_t *sem, int count)
 
     if(sucessoCriarFila == 0)
     {
+
+    	if(debug)
+		{
+			printf("\n[csem_init]: Semaforo Inicilizado com sucesso");
+		}
         return 0;
     }
     else
@@ -258,6 +313,11 @@ int csem_init(csem_t *sem, int count)
 
 int cwait(csem_t *sem)
 {
+	if(debug)
+	{
+		printf("\n[cwait]:Processo atual soliciou acesso a recurso");
+	}
+
     int sucesso = 0;
     if(PrimeiraExecucao == -1)
     {
@@ -269,6 +329,11 @@ int cwait(csem_t *sem)
     //Caso Semaforo Esteja Livre
     if(sem->count > 0) //Semaforo Livre
     {
+		if(debug)
+		{
+			printf("\n[cwait]:Semaforo estava livre");
+		}
+
         sem->count -=1;
         return 0;
     }
@@ -293,6 +358,12 @@ int cwait(csem_t *sem)
     //Troca de contexto por que perdeu o processador
     swapcontext(&threadExecutando->context,&contextoYield);
 
+
+	if(debug)
+	{
+		printf("\n[cwait]:Processo ficará aguardando o semaforo");
+	}
+
     return 0;
 }
 
@@ -313,6 +384,12 @@ int csignal(csem_t *sem)
             return -1;
     }
 
+    if(debug)
+	{
+		printf("\n[csignal]:Liberado recurso no semaforo");
+	}
+
+
     //Representa a Thread Bloqueada pelo semaforo que estamos analisando.
     TCB_t *threadBloqueada = NULL;
 
@@ -320,6 +397,12 @@ int csignal(csem_t *sem)
     {
         if(NextFila2(sem->fila) == -NXTFILA_VAZIA) // FIla Vazia
         {
+
+       	    if(debug)
+			{
+				printf("\n[csignal]:Como não havia ninguem esperando, apenas atualiza o count");
+			}
+
             sem->count +=1; //Libera um Recurso
             return 0;
         }
@@ -357,6 +440,11 @@ int csignal(csem_t *sem)
         //Libera um Recurso
         sem->count +=1;
 
+        if(debug)
+		{
+			printf("\n[csignal]:Liberada thread bloqueada com prioridade alta");
+		}
+
         //Não Preempta
         return 0;
     }
@@ -391,6 +479,12 @@ int csignal(csem_t *sem)
         //Libera um Recurso
         sem->count +=1;
 
+        if(debug)
+		{
+			printf("\n[csignal]:Liberada thread bloqueada com prioridade media");
+		}
+
+
         //Não Preempta
         return 0;
     }
@@ -404,10 +498,21 @@ int csignal(csem_t *sem)
         AppendFila2(&BaixaPrio,threadBloqueada);
         DeleteAtIteratorFila2(sem->fila);
         sem->count+=1;
+
+		if(debug)
+		{
+			printf("\n[csignal]:Liberada thread bloqueada com prioridade baixa");
+		}
+
         return 0;
     }
     else
     {
+
+    	if(debug)
+		{
+			printf("\n[csignal]:Nao havia thread com prioridade permitida");
+		}
         // Se chegou aqui entao algo errado aconteceu.
         //Por logica nunca chegaria aqui a menos que houvesse prioridades erradas.
         return -1;
@@ -421,6 +526,10 @@ int cidentify (char *name, int size)
     if(name == NULL)
         return -1;
     else
+    	if(debug)
+		{
+			printf("\n[cidentify]:Nome printado com sucesso");
+		}
         return 0;
 
 }
@@ -429,6 +538,11 @@ int cidentify (char *name, int size)
 
 int Inicializa()
 {
+	if(debug)
+	{
+		printf("\n[Inicializa]:Começa a Inicializacao");
+	}
+
     // Cria as filas
     if(
         CreateFila2(&AllThreads) != 0 ||
@@ -438,6 +552,11 @@ int Inicializa()
     {
         return -1;
     }
+
+    if(debug)
+	{
+		printf("\n[Inicializa]:Filas Criadas com sucesso. Proximo Passo, Criar contexto para Main");
+	}
 
     // Cria Contexto para a Main
     getcontext(&mainThread->context);
@@ -450,6 +569,11 @@ int Inicializa()
     //Coloca a Thread Main na lista de Baixa prioridade
     AppendFila2(&BaixaPrio,(void*)mainThread);
 
+    if(debug)
+	{
+		printf("\n[Inicializa]:Criada Thread Main e add em baixa prioridade.");
+	}
+
     //Define a Main thread como a thread executando no momento
     threadExecutando = mainThread;
 
@@ -460,6 +584,11 @@ int Inicializa()
     threadTerminada.uc_stack.ss_size = TAM_PILHA;
     makecontext(&threadTerminada, (void(*)(void)) fimDeExecucao, 0);
 
+    if(debug)
+	{
+		printf("\n[Inicializa]:Criado contexto threadTerminada");
+	}
+
     //Contexto de Yield
     getcontext(&contextoYield);
     contextoYield.uc_link = 0;
@@ -467,12 +596,21 @@ int Inicializa()
     contextoYield.uc_stack.ss_size = TAM_PILHA;
     makecontext(&contextoYield, (void(*)(void)) escalonador, 0);
 
+    if(debug)
+	{
+		printf("\n[Inicializa]:Criado contexto yield");
+	}
+
     PrimeiraExecucao = 0;
     return 0;
 }
 
 int fimDeExecucao()
 {
+	if(debug)
+	{
+		printf("\n[fimDeExecucao]:a thread %d esta encerrando sua execução.",threadExecutando->tid);
+	}
 
 	int tid = threadExecutando->tid;
 	TCB_t* threadLiberada = NULL;
@@ -514,8 +652,18 @@ int fimDeExecucao()
 
 	if(threadLiberada != NULL)
 	{
+		if(debug)
+		{
+			printf("\n[fimDeExecucao]:thread %d será liberada.",threadLiberada->tid);
+		}
+
 		transicaoBloqParaApto(threadLiberada);
 		DeleteAtIteratorFila2(&filaJoin);
+
+		if(debug)
+		{
+			printf("\n[fimDeExecucao]:thread foi liberada.",threadLiberada->tid);
+		}
 	}
 
     free(threadExecutando);
@@ -525,6 +673,12 @@ int fimDeExecucao()
 
 int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
 {
+
+	if(debug)
+	{
+		printf("\n[verificaSeThreadEstaNaFila]: Inicio");
+	}
+
     TCB_t *threadAtual = NULL;
     int found = 0;
 
@@ -537,12 +691,26 @@ int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
         if(threadAtual->tid == tid)
         {
             found = 1;
+            break;
+
         }
         else
         {
             NextFila2(filaEntrada);
             threadAtual = (TCB_t*) GetAtIteratorFila2(filaEntrada);
         }
+    }
+
+    if(debug){
+
+    	if(found == 1){
+			printf("\n[verificaSeThreadEstaNaFila]: Encontrou");
+    	}else{
+    		printf("\n[verificaSeThreadEstaNaFila]: Não Encontrou");
+    	}
+
+
+
     }
     return found;
 
@@ -553,6 +721,11 @@ int verificaSeThreadEstaNaFila(int tid, PFILA2 filaEntrada)
 //Join - Bloq ate terminar a thread de espera. Entro no escalonador após.
 //Fim de Processo
 int escalonador(){
+
+	if(debug)
+	{
+		printf("\n[escalonador]: Inicio");
+	}
 
 	//Em caso de yield apenas? E em caso de join? Precisa de flag de verificação.
 	if(FirstFila2(&AltaPrio) == 0){//Achei thread com alta prioridade 
@@ -592,6 +765,12 @@ int escalonador(){
 //Realiza a transição da thread de execução atual para o estado de sua prioridade especifica.
 //Depois ver se causa erro trocar o estado antes do switch.
 void transicaoExecParaApto(){
+
+	if(debug)
+	{
+		printf("\n[transicaoExecParaApto]");
+	}
+
 	threadExecutando->state = PROCST_APTO;	
 	int prioridade = threadExecutando->prio;
 	switch (prioridade){
@@ -613,6 +792,12 @@ void transicaoExecParaApto(){
 //Realiza a transição da thread bloqueada para o estado de sua prioridade especifica.
 //Depois ver se causa erro trocar o estado antes do switch.
 void transicaoBloqParaApto(TCB_t *threadLiberada){
+
+	if(debug)
+	{
+		printf("\n[transicaoBloqParaApto]");
+	}
+
 	threadLiberada->state = PROCST_APTO;	
 	int prioridade = threadLiberada->prio;
 	switch (prioridade){
