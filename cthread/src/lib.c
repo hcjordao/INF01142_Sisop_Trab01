@@ -548,7 +548,9 @@ int Inicializa()
         CreateFila2(&AllThreads) != 0 ||
         CreateFila2(&AltaPrio)   != 0 ||
         CreateFila2(&MediaPrio)  != 0 ||
-        CreateFila2(&BaixaPrio)  != 0 )
+        CreateFila2(&BaixaPrio)  != 0 ||
+        CreateFila2(&bloqueadas) != 0 ||
+        CreateFila2(&filaJoin)  != 0)
     {
         return -1;
     }
