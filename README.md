@@ -5,8 +5,6 @@ FALTA:
 
   * csignal (liberar semaforo)
   * cwait (aguardar semaforo)
-  * setprio (alterar prioridade)
-  * cidentify (mostrar nomes)
   
 * Verificação conforme a especificação
 
