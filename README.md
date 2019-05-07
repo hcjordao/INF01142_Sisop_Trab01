@@ -3,10 +3,10 @@
 FALTA: 
 * Criar testes para:
 
-*csignal (liberar semaforo)
-*cwait (aguardar semaforo)
-*setprio (alterar prioridade)
-*cidentify (mostrar nomes)
+  * csignal (liberar semaforo)
+  * cwait (aguardar semaforo)
+  * setprio (alterar prioridade)
+  * cidentify (mostrar nomes)
   
 * Verificação conforme a especificação
 
