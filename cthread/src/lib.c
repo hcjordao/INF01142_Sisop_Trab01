@@ -252,18 +252,21 @@ int cwait(csem_t *sem){
         return -1;
     }
 
+    //Processo agora está em bloqueado
     threadExecutando->state = PROCST_BLOQ;
 
     sucesso = AppendFila2(&filaBloqueadas,(void*)threadExecutando);
+
     if(sucesso != 0) {
         return -1;
     }
 
     sem->count -= 1;
-
-    swapcontext(&threadExecutando->context,&contextoYield);
-
+    
 	if(debug) printf("\n[cwait]:Processo ficará aguardando o semaforo\n");
+
+    yield = 0;
+    swapcontext(&threadExecutando->context,&contextoYield);
 
     return 0;
 }
@@ -516,6 +519,7 @@ int escalonador(){
 	    if(debug) printf("\nALTA\n"); 
 
 		if(yield == 1){
+            printf("\nTransitando de Exec para\n");
             transicaoExecParaApto();
         }
 
@@ -621,3 +625,4 @@ void transicaoBloqParaApto(TCB_t *threadLiberada){
 			break;
 	}
 }
+

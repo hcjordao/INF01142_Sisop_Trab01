@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TAM_SEM 2
+#define TAM_SEM 1
 
 csem_t semaforo;
 
@@ -59,8 +59,10 @@ int main(int argc, char *argv[])
 
     id1 = ccreate(func1,(void *)&i, 0);
     if(id1 != -1) printf("Thread 2 criada\n");
-
+	
+    printf("Thread Main -> Perdendo Processador\n");
     cyield();
+    printf("Thread Main -> Recebendo Processador\n");
 
     printf("Thread Main -> Liberando Recurso\n");
     csignal(&semaforo);
