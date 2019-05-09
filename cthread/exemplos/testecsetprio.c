@@ -14,31 +14,37 @@
 #include <string.h>
 
 void* func0(void *arg) {
-	printf("\n Eu sou a thread %d atualizada \n", *((int *)arg));
-	return;
+
+    int novaPrioridade = 1;
+    int tid = 0; 
+
+    printf("Thread 1 -> Executando\n");
+
+    printf("Thread 1 -> Alterando Prioridade Própria\n");
+    if(csetprio(tid,novaPrioridade) == 0)
+    {
+        printf("Thread 1 -> Prioridade alterada para %d\n", novaPrioridade);
+    } else {
+        printf("Thread 1 -> Prioridade não foi alterada\n");
+    }
+
+    printf("Thread 1 -> Finalizando\n");
+	return (NULL);
 }
 
 int main(int argc, char *argv[]) 
 {
-	int	id0;
-	int i, prio;
+	int id0, i, threadPrio;
+    printf("Thread Main -> Executando...\n");
 
-	id0 = ccreate(func0, (void *)&i, 0);
+    threadPrio = 0;
 
-    printf("\nPrioridade Atual da thread: %d ", id0->prio);
+	id0 = ccreate(func0, (void *)&i, threadPrio);
+    if(id0 != -1) printf("Thread 1 criada com prioridade %d...\n", threadPrio); 
 
-    prio = 1;
-
-    if(csetprio(id0->tid,prio))
-    {
-        printf("\nPrioridade da thread Atualizada: %d", id0->prio);
-
-    }
-
-	printf("\nEu sou a main apos a alteração da prioridade \n");
-
-    //Libera a exec
+    printf("Thread Main -> Perdeu Processador\n");
     cyield();
-   
-    return 0;
+    
+    printf("Thread Main -> Finalizando...\n");
+    exit(0);
 }

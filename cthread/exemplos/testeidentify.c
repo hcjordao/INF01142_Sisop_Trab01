@@ -15,11 +15,13 @@
 
 int main()
 {
-    char name[100];
+    int size = 100;
+    char name[size];
     
-    cidentify(&name,100);
+    cidentify(name,size);
 
     puts(name);
 
-return 0;
+    exit(0);
 }
+

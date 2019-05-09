@@ -19,7 +19,7 @@ void* fatorial(void *i) {
          fat = n * fat;
 
      printf("Fatorial de %d eh %d:\n",salva, fat);
-     return;
+     return (NULL);
 }
 
 void* fibonnaci (void *i) {
@@ -38,7 +38,7 @@ void* fibonnaci (void *i) {
      }
 
      printf("\n");
-     return;
+     return (NULL);
 }
 
 int main(int argc, char **argv) {
@@ -54,5 +54,7 @@ int main(int argc, char **argv) {
 	cjoin(id1);
 
 	printf("Main retornando para terminar o programa\n");
+
+    return 0;
 }
 
